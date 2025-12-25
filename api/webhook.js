@@ -12,7 +12,10 @@ export default async function handler(req, res) {
     await supabase.channel('telegram-notifications').send({
       type: 'broadcast',
       event: 'new-notif',
-      payload: { message: text, from: message?.from?.first_name },
+      payload: { 
+        message: text, 
+        sender: message?.from?.first_name || "User" // Changed 'from' to 'sender'
+      },
     });
 
     return res.status(200).json({ ok: true });
