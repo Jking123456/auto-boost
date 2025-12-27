@@ -3,13 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Boost Monitor & Control</title>
+    <title>Boost Control Panel</title>
     <style>
-        body { font-family: -apple-system, system-ui, sans-serif; background: #0b0e11; color: #e9ecef; padding: 15px; display: flex; justify-content: center; }
+        body { font-family: -apple-system, sans-serif; background: #0b0e11; color: #e9ecef; padding: 15px; display: flex; justify-content: center; }
         .card { background: #15191c; border-radius: 16px; padding: 24px; width: 100%; max-width: 450px; border: 1px solid #2b2f32; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         h1 { font-size: 1.4rem; text-align: center; color: #00d4ff; margin-bottom: 20px; }
-        
-        /* Toggle Switch Styling */
         .switch-container { display: flex; justify-content: space-between; align-items: center; background: #1c2126; padding: 15px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #2b2f32; }
         .switch { position: relative; display: inline-block; width: 50px; height: 26px; }
         .switch input { opacity: 0; width: 0; height: 0; }
@@ -17,22 +15,16 @@
         .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
         input:checked + .slider { background-color: #007bff; }
         input:checked + .slider:before { transform: translateX(24px); }
-        input:disabled + .slider { opacity: 0.5; cursor: not-allowed; }
-
-        .refresh-btn { width: 100%; padding: 12px; background: transparent; border: 1px solid #007bff; color: #007bff; border-radius: 10px; font-weight: bold; cursor: pointer; margin-bottom: 20px; transition: 0.2s; }
-        .refresh-btn:active { background: #007bff; color: white; }
-        
+        .refresh-btn { width: 100%; padding: 12px; background: transparent; border: 1px solid #007bff; color: #007bff; border-radius: 10px; font-weight: bold; cursor: pointer; margin-bottom: 20px; }
         .log-item { border-bottom: 1px solid #2b2f32; padding: 12px 0; display: flex; justify-content: space-between; align-items: center; }
-        .status-success { color: #4caf50; font-weight: 600; font-size: 0.85rem; background: rgba(76, 175, 80, 0.1); padding: 4px 8px; border-radius: 6px; }
-        .status-failed { color: #f44336; font-weight: 600; font-size: 0.85rem; background: rgba(244, 67, 54, 0.1); padding: 4px 8px; border-radius: 6px; }
+        .status-success { color: #4caf50; background: rgba(76, 175, 80, 0.1); padding: 4px 8px; border-radius: 6px; font-size: 0.85rem; }
+        .status-failed { color: #f44336; background: rgba(244, 67, 54, 0.1); padding: 4px 8px; border-radius: 6px; font-size: 0.85rem; }
         .time { color: #9ba3af; font-size: 0.85rem; font-family: monospace; }
     </style>
 </head>
 <body>
-
 <div class="card">
     <h1>🚀 Boost Control</h1>
-
     <div class="switch-container">
         <span><b>Automation Status</b></span>
         <label class="switch">
@@ -40,10 +32,8 @@
             <span class="slider"></span>
         </label>
     </div>
-
-    <button class="refresh-btn" onclick="loadLogs()">🔄 Refresh History</button>
-    
-    <div id="logs">Connecting to server...</div>
+    <button class="refresh-btn" onclick="loadData()">🔄 Refresh History</button>
+    <div id="logs">Loading Status...</div>
 </div>
 
 <script>
@@ -51,7 +41,6 @@
     const logDiv = document.getElementById('logs');
 
     async function toggleAutomation(isEnabled) {
-        toggle.disabled = true; // Prevent double-clicking
         try {
             const res = await fetch('/api/history', {
                 method: 'POST',
@@ -59,51 +48,43 @@
                 body: JSON.stringify({ enabled: isEnabled })
             });
             if (!res.ok) throw new Error();
-            console.log("Status updated: " + isEnabled);
         } catch (e) {
             alert("Failed to update status. Check your API Key.");
-            toggle.checked = !isEnabled; // Revert switch if failed
-        } finally {
-            toggle.disabled = false;
+            toggle.checked = !isEnabled;
         }
     }
 
-    async function loadLogs() {
-        logDiv.innerHTML = "<div style='text-align:center; padding:10px;'>Updating...</div>";
+    async function loadData() {
         try {
             const res = await fetch('/api/history');
             const data = await res.json();
             
-            // SYNC TOGGLE: Set the switch to match the actual job status
+            // Sync toggle with server
             toggle.checked = data.enabled;
 
             if (!data.history || data.history.length === 0) {
-                logDiv.innerHTML = "<div style='text-align:center; padding:20px; color:#888;'>No logs found.</div>";
+                logDiv.innerHTML = "<center>No logs found.</center>";
                 return;
             }
 
             logDiv.innerHTML = data.history.slice(0, 10).map(log => {
-                const isSuccess = log.status === 200; //
-                const time = new Date(log.executedAt * 1000).toLocaleTimeString([], { 
-                    hour: '2-digit', minute: '2-digit', second: '2-digit' 
-                }); //
-
+                const isSuccess = log.status === 200;
+                // FIX: Use * 1000 for correct time
+                const time = new Date(log.executedAt * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                 return `
                     <div class="log-item">
                         <span class="time">${time}</span>
                         <span class="${isSuccess ? 'status-success' : 'status-failed'}">
-                            ${isSuccess ? 'SUCCESS' : 'FAILED (' + (log.httpStatus || 'Timeout') + ')'}
+                            ${isSuccess ? '● SUCCESS' : '● FAILED (' + (log.httpStatus || 'Timeout') + ')'}
                         </span>
                     </div>
                 `;
             }).join('');
         } catch (e) {
-            logDiv.innerHTML = "<div style='text-align:center; color:#f44336; padding:20px;'>⚠️ Connection Error</div>";
+            logDiv.innerHTML = "<center style='color:#f44336'>⚠️ Connection Error</center>";
         }
     }
-
-    // Load data and sync toggle as soon as page opens
-    loadLogs();
+    loadData();
 </script>
 </body>
 </html>
