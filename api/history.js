@@ -6,11 +6,10 @@ module.exports = async (req, res) => {
   const headers = { 'Authorization': `Bearer ${API_KEY.trim()}` };
 
   try {
-    const jobRes = await axios.get(`https://api.cron-job.org/jobs/${JOB_ID}`, { headers });
+    // Only fetching history since the toggle is removed
     const histRes = await axios.get(`https://api.cron-job.org/jobs/${JOB_ID}/history`, { headers });
 
     res.status(200).json({
-      enabled: jobRes.data?.job?.enabled || false,
       history: histRes.data?.history || []
     });
   } catch (error) {
