@@ -1,23 +1,32 @@
-// api/boost.js
-import axios from 'axios';
+const axios = require('axios');
 
-export default async function handler(req, res) {
-  // Optional: Only allow POST requests (common for cron services)
-  if (req.method !== 'POST' && req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
+module.exports = async (req, res) => {
+  // Set a timeout of 10 seconds for the external API call
+  const axiosInstance = axios.create({
+    timeout: 10000 
+  });
 
   try {
-    const response = await axios.post('https://axhfreeboosting.axelhosting.xyz/api/boost', {
-      url: "https://www.facebook.com/profile.php?id=61583017822517", // Replace this with your actual link
+    // Make the POST request to the boosting service
+    const response = await axiosInstance.post('https://axhfreeboosting.axelhosting.xyz/api/boost', {
+      url: "https://www.facebook.com/profile.php?id=61583017822517", // Replace this with your target URL
       service_type: "facebook_boost"
     });
 
-    console.log("Boost Response:", response.data);
-    return res.status(200).json({ status: 'success', data: response.data });
-  } catch (error) {
-    console.error("Boost Error:", error.message);
-    return res.status(500).json({ status: 'error', message: error.message });
-  }
-}
+    // Send the success response back to cron-job.org
+    return res.status(200).json({
+      status: "Triggered",
+      api_response: response.data
+    });
 
+  } catch (error) {
+    // If the external API is down or times out, send the error log
+    console.error("Boost Error:", error.message);
+    
+    return res.status(500).json({
+      status: "Error",
+      message: error.message,
+      detail: error.response ? error.response.data : "No response from service"
+    });
+  }
+};
