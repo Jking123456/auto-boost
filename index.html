@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Boost Control</title>
+    <title>Boost Control Panel</title>
     <style>
         body { font-family: -apple-system, sans-serif; background: #0b0e11; color: #e9ecef; padding: 15px; display: flex; justify-content: center; }
         .card { background: #15191c; border-radius: 16px; padding: 24px; width: 100%; max-width: 400px; border: 1px solid #2b2f32; }
@@ -16,13 +16,13 @@
         input:checked + .slider:before { transform: translateX(24px); }
         .btn { width: 100%; padding: 12px; background: #007bff; border: none; color: white; border-radius: 8px; font-weight: bold; margin-bottom: 20px; }
         .log-item { border-bottom: 1px solid #2b2f32; padding: 10px 0; display: flex; justify-content: space-between; font-size: 0.85rem; }
-        .status-ok { color: #4caf50; }
-        .status-err { color: #f44336; }
+        .status-ok { color: #4caf50; background: rgba(76, 175, 80, 0.1); padding: 4px 8px; border-radius: 6px; }
+        .status-err { color: #f44336; background: rgba(244, 67, 54, 0.1); padding: 4px 8px; border-radius: 6px; }
     </style>
 </head>
 <body>
 <div class="card">
-    <h2 style="text-align:center;">🚀 Boost Control</h2>
+    <h1 style="text-align:center; color:#00d4ff;">🚀 Boost Control</h1>
     <div class="switch-container">
         <span>Automation Status</span>
         <label class="switch">
@@ -31,17 +31,21 @@
         </label>
     </div>
     <button class="btn" onclick="loadData()">🔄 Refresh History</button>
-    <div id="logs">Loading Status...</div>
+    <div id="logs">Loading logs...</div>
 </div>
 
 <script>
     async function toggleAutomation(isOn) {
-        const res = await fetch('/api/history', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ enabled: isOn })
-        });
-        if (!res.ok) alert("Failed to update status.");
+        try {
+            const res = await fetch('/api/history', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ enabled: isOn })
+            });
+            if(!res.ok) throw new Error();
+        } catch (e) {
+            alert("Connection error. Try refreshing.");
+        }
     }
 
     async function loadData() {
@@ -50,25 +54,26 @@
             const res = await fetch('/api/history');
             const data = await res.json();
             
-            // Sync the switch state
-            document.getElementById('boostToggle').checked = data.enabled;
+            // Sync the toggle switch
+            document.getElementById('boostToggle').checked = data.enabled || false;
 
             if (!data.history || data.history.length === 0) {
-                logDiv.innerHTML = "<center>No history found.</center>";
+                logDiv.innerHTML = "<center style='color:#888'>No logs found yet.</center>";
                 return;
             }
 
             logDiv.innerHTML = data.history.slice(0, 10).map(log => {
-                const isOk = log.status === 200; // Success code
-                const time = new Date(log.executedAt * 1000).toLocaleTimeString(); // Correcting Unix seconds
+                const isOk = log.status === 200;
+                // FIX: Multiply by 1000 to show correct time
+                const time = new Date(log.executedAt * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                 return `
                     <div class="log-item">
-                        <span>${time}</span>
-                        <span class="${isOk ? 'status-ok' : 'status-err'}">${isOk ? '● SUCCESS' : '● FAILED'}</span>
+                        <span style="color:#9ba3af">${time}</span>
+                        <span class="${isOk ? 'status-ok' : 'status-err'}">${isOk ? 'SUCCESS' : 'FAILED'}</span>
                     </div>`;
             }).join('');
         } catch (e) {
-            logDiv.innerHTML = "<center style='color:red'>Connection Error</center>";
+            logDiv.innerHTML = "<center style='color:#f44336'>⚠️ API connection error</center>";
         }
     }
     loadData();
