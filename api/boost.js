@@ -1,32 +1,36 @@
 const axios = require('axios');
 
 module.exports = async (req, res) => {
-  // Set a timeout of 10 seconds for the external API call
+  // Increased timeout to 30 seconds for better stability
   const axiosInstance = axios.create({
-    timeout: 10000 
+    timeout: 30000 
   });
 
   try {
-    // Make the POST request to the boosting service
+    console.log("Starting boost request...");
+    
     const response = await axiosInstance.post('https://axhfreeboosting.axelhosting.xyz/api/boost', {
-      url: "https://www.facebook.com/profile.php?id=61583017822517", // Replace this with your target URL
+      url: "https://www.facebook.com/profile.php?id=61583017822517", // Ensure your actual link is here
       service_type: "facebook_boost"
     });
 
-    // Send the success response back to cron-job.org
+    console.log("Boost Successful:", response.data);
+
     return res.status(200).json({
-      status: "Triggered",
-      api_response: response.data
+      success: true,
+      order_id: response.data.order_id,
+      timestamp: new Date().toISOString()
     });
 
   } catch (error) {
-    // If the external API is down or times out, send the error log
-    console.error("Boost Error:", error.message);
+    // Detailed error logging for Vercel Dashboard
+    const errorMsg = error.response ? JSON.stringify(error.response.data) : error.message;
+    console.error("Boost Failed:", errorMsg);
     
     return res.status(500).json({
-      status: "Error",
-      message: error.message,
-      detail: error.response ? error.response.data : "No response from service"
+      success: false,
+      error: error.message,
+      details: error.response ? error.response.data : "Target server timed out"
     });
   }
 };
