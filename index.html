@@ -6,55 +6,57 @@
     <title>Boost Monitor</title>
     <style>
         body { font-family: -apple-system, sans-serif; background: #0b0e11; color: #e9ecef; padding: 15px; display: flex; justify-content: center; }
-        .card { background: #15191c; border-radius: 16px; padding: 24px; width: 100%; max-width: 450px; border: 1px solid #2b2f32; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        h1 { font-size: 1.4rem; text-align: center; color: #00d4ff; margin-bottom: 20px; }
-        .refresh-btn { width: 100%; padding: 14px; background: #007bff; border: none; color: white; border-radius: 10px; font-weight: bold; cursor: pointer; margin-bottom: 20px; font-size: 1rem; }
-        .log-item { border-bottom: 1px solid #2b2f32; padding: 12px 0; display: flex; justify-content: space-between; align-items: center; }
-        .status-success { color: #4caf50; font-weight: 600; background: rgba(76, 175, 80, 0.1); padding: 4px 10px; border-radius: 6px; }
-        .status-failed { color: #f44336; font-weight: 600; background: rgba(244, 67, 54, 0.1); padding: 4px 10px; border-radius: 6px; }
-        .time { color: #9ba3af; font-size: 0.85rem; font-family: monospace; }
+        .card { background: #15191c; border-radius: 16px; padding: 24px; width: 100%; max-width: 450px; border: 1px solid #2b2f32; }
+        .switch-container { display: flex; justify-content: space-between; align-items: center; background: #1c2126; padding: 15px; border-radius: 12px; margin-bottom: 20px; }
+        .switch { position: relative; display: inline-block; width: 50px; height: 26px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #333; transition: .4s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: #007bff; }
+        input:checked + .slider:before { transform: translateX(24px); }
+        .log-item { border-bottom: 1px solid #2b2f32; padding: 10px 0; display: flex; justify-content: space-between; font-size: 0.9rem; }
+        .status-success { color: #4caf50; }
+        .status-failed { color: #f44336; }
     </style>
 </head>
 <body>
-
 <div class="card">
-    <h1>🚀 Boost Monitor</h1>
-    <button class="refresh-btn" onclick="loadLogs()">🔄 Refresh History</button>
-    <div id="logs">Loading latest data...</div>
+    <h2 style="text-align:center; color:#00d4ff;">🚀 Boost Control</h2>
+    
+    <div class="switch-container">
+        <span><b>Automation Status</b></span>
+        <label class="switch">
+            <input type="checkbox" id="boostToggle" onchange="updateStatus(this.checked)">
+            <span class="slider"></span>
+        </label>
+    </div>
+
+    <div id="logs">Loading logs...</div>
 </div>
 
 <script>
-    async function loadLogs() {
-        const logDiv = document.getElementById('logs');
+    async function updateStatus(isEnabled) {
         try {
-            const res = await fetch('/api/history');
-            const data = await res.json();
-            
-            if (!data || data.length === 0) {
-                logDiv.innerHTML = "<div style='text-align:center; padding:20px;'>No logs found yet.</div>";
-                return;
-            }
+            await fetch('/api/history', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ enabled: isEnabled })
+            });
+            alert("Automation " + (isEnabled ? "Started" : "Stopped"));
+        } catch (e) { alert("Error updating status"); }
+    }
 
-            logDiv.innerHTML = data.slice(0, 15).map(log => {
-                // FIX: Status 200 is actually a SUCCESS
-                const isSuccess = log.status === 200; 
-                
-                // FIX: Multiply by 1000 to fix "Invalid Date"
-                const dateObj = new Date(log.executedAt * 1000); 
-                const time = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-
-                return `
-                    <div class="log-item">
-                        <span class="time">${time}</span>
-                        <span class="${isSuccess ? 'status-success' : 'status-failed'}">
-                            ${isSuccess ? '✅ SUCCESS' : '❌ FAILED (' + (log.httpStatus || 'Timeout') + ')'}
-                        </span>
-                    </div>
-                `;
-            }).join('');
-        } catch (e) {
-            logDiv.innerHTML = "<div style='text-align:center; color:#f44336; padding:20px;'>⚠️ Connection Error</div>";
-        }
+    async function loadLogs() {
+        const res = await fetch('/api/history');
+        const data = await res.json();
+        document.getElementById('logs').innerHTML = data.slice(0, 10).map(log => `
+            <div class="log-item">
+                <span>${new Date(log.executedAt * 1000).toLocaleTimeString()}</span>
+                <span class="${log.status === 200 ? 'status-success' : 'status-failed'}">
+                    ${log.status === 200 ? 'SUCCESS' : 'FAILED'}
+                </span>
+            </div>
+        `).join('');
     }
     loadLogs();
 </script>
