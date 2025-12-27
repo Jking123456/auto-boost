@@ -18,6 +18,7 @@
         .status-err { color: #f44336; font-weight: bold; }
         .time { color: #9ba3af; font-family: monospace; }
         #logs { max-height: 350px; overflow-y: auto; scrollbar-width: thin; }
+        .error-msg { color: #ff9800; font-size: 0.8rem; margin-top: 10px; text-align: center; display: none; }
     </style>
 </head>
 <body>
@@ -32,24 +33,33 @@
 
     <button class="btn" onclick="loadData()">🔄 REFRESH LOGS</button>
     <div id="logs">Connecting to System...</div>
+    <div id="errorMessage" class="error-msg">⚠️ Rate limit reached. Waiting to retry...</div>
 </div>
 
 <script>
     const logDiv = document.getElementById('logs');
     const lastSuccessText = document.getElementById('lastSuccessTime');
+    const errorMsg = document.getElementById('errorMessage');
 
     async function loadData() {
         try {
             const res = await fetch('/api/history');
             const data = await res.json();
             
+            // Handle Rate Limit (Status 429)
+            if (res.status === 429) {
+                errorMsg.style.display = 'block';
+                return;
+            }
+            errorMsg.style.display = 'none';
+
             if (!data.history || data.history.length === 0) {
                 logDiv.innerHTML = "<center style='color:#888; padding:20px;'>No history found.</center>";
                 lastSuccessText.innerText = "No data";
                 return;
             }
 
-            // Find the most recent success (status 1 = OK)
+            // Find the most recent success
             const lastSuccess = data.history.find(log => log.status === 1 || log.httpStatus === 200);
             if (lastSuccess) {
                 const date = new Date(lastSuccess.date * 1000);
@@ -58,7 +68,7 @@
                 lastSuccessText.innerText = "None recently";
             }
 
-            // Map and display logs
+            // Display logs
             logDiv.innerHTML = data.history.slice(0, 15).map(log => {
                 const isOk = log.status === 1 || log.httpStatus === 200; 
                 const logDate = new Date(log.date * 1000);
@@ -77,11 +87,10 @@
         }
     }
 
-    // Load data on start
     loadData();
 
-    // Auto-refresh every 60 seconds
-    setInterval(loadData, 60000);
+    // Auto-refresh every 5 minutes to avoid "Status 429" errors
+    setInterval(loadData, 300000);
 </script>
 </body>
 </html>
