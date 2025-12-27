@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Boost Dashboard</title>
+    <style>
+        body { font-family: -apple-system, sans-serif; background: #121212; color: white; padding: 15px; }
+        .card { background: #1e1e1e; border-radius: 12px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        h1 { font-size: 1.5rem; text-align: center; color: #00d4ff; }
+        .log-item { border-bottom: 1px solid #333; padding: 10px 0; display: flex; justify-content: space-between; align-items: center; }
+        .status-ok { color: #4caf50; background: rgba(76, 175, 80, 0.1); padding: 4px 8px; border-radius: 4px; }
+        .status-err { color: #f44336; background: rgba(244, 67, 54, 0.1); padding: 4px 8px; border-radius: 4px; }
+        .time { color: #888; font-size: 0.85rem; }
+        button { width: 100%; padding: 12px; background: #007bff; border: none; color: white; border-radius: 8px; font-weight: bold; margin-bottom: 15px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h1>🚀 Auto-Boost Status</h1>
+    <button onclick="loadLogs()">Update Status</button>
+    <div id="logs">Loading logs...</div>
+</div>
+
+<script>
+    async function loadLogs() {
+        const logDiv = document.getElementById('logs');
+        try {
+            const res = await fetch('/api/history');
+            const data = await res.json();
+            
+            logDiv.innerHTML = data.slice(0, 15).map(log => {
+                const isSuccess = log.status === 200;
+                const time = new Date(log.executedAt * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                return `
+                    <div class="log-item">
+                        <div>
+                            <span class="time">${time}</span>
+                        </div>
+                        <div class="${isSuccess ? 'status-ok' : 'status-err'}">
+                            ${isSuccess ? 'SUCCESS' : 'FAILED (' + (log.httpStatus || 'Timeout') + ')'}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        } catch (e) {
+            logDiv.innerHTML = "Failed to load logs.";
+        }
+    }
+    loadLogs();
+</script>
+</body>
+</html>
