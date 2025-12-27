@@ -3,58 +3,68 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Boost Dashboard</title>
+    <title>Boost Monitor</title>
     <style>
-        body { font-family: -apple-system, sans-serif; background: #0b0e11; color: #e9ecef; padding: 15px; display: flex; justify-content: center; }
-        .card { background: #15191c; border-radius: 16px; padding: 24px; width: 100%; max-width: 450px; border: 1px solid #2b2f32; }
+        body { font-family: -apple-system, system-ui, sans-serif; background: #0b0e11; color: #e9ecef; padding: 15px; display: flex; justify-content: center; }
+        .card { background: #15191c; border-radius: 16px; padding: 24px; width: 100%; max-width: 450px; border: 1px solid #2b2f32; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         h1 { font-size: 1.4rem; text-align: center; color: #00d4ff; margin-bottom: 20px; }
-        .refresh-btn { width: 100%; padding: 12px; background: #007bff; border: none; color: white; border-radius: 10px; font-weight: bold; cursor: pointer; margin-bottom: 20px; transition: 0.2s; }
-        .refresh-btn:active { transform: scale(0.98); }
+        .refresh-btn { width: 100%; padding: 14px; background: #007bff; border: none; color: white; border-radius: 10px; font-weight: bold; cursor: pointer; margin-bottom: 20px; transition: 0.2s; font-size: 1rem; }
+        .refresh-btn:active { transform: scale(0.96); opacity: 0.9; }
         .log-item { border-bottom: 1px solid #2b2f32; padding: 12px 0; display: flex; justify-content: space-between; align-items: center; }
-        .status-success { color: #4caf50; font-weight: 600; font-size: 0.9rem; }
-        .status-failed { color: #f44336; font-weight: 600; font-size: 0.9rem; }
-        .time { color: #9ba3af; font-size: 0.85rem; font-family: monospace; }
+        .log-item:last-child { border-bottom: none; }
+        .status-success { color: #4caf50; font-weight: 600; font-size: 0.9rem; background: rgba(76, 175, 80, 0.1); padding: 4px 10px; border-radius: 6px; }
+        .status-failed { color: #f44336; font-weight: 600; font-size: 0.9rem; background: rgba(244, 67, 54, 0.1); padding: 4px 10px; border-radius: 6px; }
+        .time { color: #9ba3af; font-size: 0.85rem; font-family: 'Courier New', monospace; }
+        #logs { max-height: 400px; overflow-y: auto; }
     </style>
 </head>
 <body>
 
 <div class="card">
     <h1>🚀 Boost Monitor</h1>
-    <button class="refresh-btn" onclick="loadLogs()">Update Live Status</button>
-    <div id="logs">Connecting to server...</div>
+    <button class="refresh-btn" onclick="loadLogs()">🔄 Refresh History</button>
+    <div id="logs">Connecting to Vercel...</div>
 </div>
 
 <script>
     async function loadLogs() {
         const logDiv = document.getElementById('logs');
         try {
+            // Fetching from your private API bridge
             const res = await fetch('/api/history');
             const data = await res.json();
             
-            if (data.length === 0) {
-                logDiv.innerHTML = "<center>No history found yet.</center>";
+            if (!data || data.length === 0) {
+                logDiv.innerHTML = "<div style='text-align:center; padding:20px; color:#888;'>No logs found yet. Check back in 1 minute.</div>";
                 return;
             }
 
-            logDiv.innerHTML = data.slice(0, 10).map(log => {
-                // Correctly check if status is 200 (Success)
+            logDiv.innerHTML = data.slice(0, 15).map(log => {
+                // cron-job.org status 200 = Success
                 const isSuccess = log.status === 200; 
-                // Fix the "Invalid Date" by multiplying seconds by 1000
-                const time = new Date(log.executedAt * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                
+                // IMPORTANT FIX: Multiply by 1000 because cron-job.org uses seconds, not milliseconds
+                const time = new Date(log.executedAt * 1000).toLocaleTimeString([], { 
+                    hour: '2-digit', 
+                    minute: '2-digit', 
+                    second: '2-digit' 
+                });
 
                 return `
                     <div class="log-item">
                         <span class="time">${time}</span>
                         <span class="${isSuccess ? 'status-success' : 'status-failed'}">
-                            ${isSuccess ? '● SUCCESS' : '● FAILED (' + (log.httpStatus || 'Timeout') + ')'}
+                            ${isSuccess ? '✅ SUCCESS' : '❌ FAILED (' + (log.httpStatus || 'Timeout') + ')'}
                         </span>
                     </div>
                 `;
             }).join('');
         } catch (e) {
-            logDiv.innerHTML = "<center style='color:#f44336'>⚠️ Error loading data</center>";
+            logDiv.innerHTML = "<div style='text-align:center; color:#f44336; padding:20px;'>⚠️ Failed to reach API. Check Vercel logs.</div>";
         }
     }
+    
+    // Auto-load on open
     loadLogs();
 </script>
 </body>
