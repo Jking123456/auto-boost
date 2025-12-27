@@ -1,10 +1,8 @@
 const axios = require('axios');
 
 module.exports = async (req, res) => {
-  // CRITICAL: Double-check these two values from your cron-job.org settings
   const API_KEY = 'p/fvJNB/9gj0bTMiySF7TtAOI9Ws0mQUTa9u40j91bQ=';
-const JOB_ID = '7076160';
-  
+  const JOB_ID = '7076160';
   
   const headers = { 'Authorization': `Bearer ${API_KEY}` };
 
@@ -19,7 +17,6 @@ const JOB_ID = '7076160';
   }
 
   try {
-    // We fetch the job status and history separately for better error tracking
     const jobDetail = await axios.get(`https://api.cron-job.org/jobs/${JOB_ID}`, { headers });
     const jobHistory = await axios.get(`https://api.cron-job.org/jobs/${JOB_ID}/history`, { headers });
 
@@ -28,7 +25,6 @@ const JOB_ID = '7076160';
       history: jobHistory.data.history || []
     });
   } catch (error) {
-    // If this triggers, the API Key or Job ID is definitely wrong
     res.status(401).json({ 
       error: "API Key or Job ID invalid", 
       details: error.response ? error.response.data : "No response from cron-job.org",
