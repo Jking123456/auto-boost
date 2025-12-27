@@ -9,7 +9,7 @@ export default async function handler(req, res) {
 
   try {
     const response = await axios.post('https://axhfreeboosting.axelhosting.xyz/api/boost', {
-      url: "YOUR_URL_HERE", // Replace this with your actual link
+      url: "https://www.facebook.com/profile.php?id=61583017822517", // Replace this with your actual link
       service_type: "facebook_boost"
     });
 
