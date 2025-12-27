@@ -2,7 +2,7 @@ const axios = require('axios');
 
 module.exports = async (req, res) => {
   // CRITICAL: Double-check these two values from your cron-job.org settings
-  const API_KEY = 'asVdr6fswV9XT+aZXFPOWM0e5NpgDCvW2QK8n3F1NB4='; 
+  const API_KEY = 'p/fvJNB/9gj0bTMiySF7TtAOI9Ws0mQUTa9u40j91bQ='; 
   const JOB_ID = '7076160';
   
   const headers = { 'Authorization': `Bearer ${API_KEY}` };
