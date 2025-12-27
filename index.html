@@ -5,22 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Boost Dashboard</title>
     <style>
-        body { font-family: -apple-system, sans-serif; background: #121212; color: white; padding: 15px; }
-        .card { background: #1e1e1e; border-radius: 12px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
-        h1 { font-size: 1.5rem; text-align: center; color: #00d4ff; }
-        .log-item { border-bottom: 1px solid #333; padding: 10px 0; display: flex; justify-content: space-between; align-items: center; }
-        .status-ok { color: #4caf50; background: rgba(76, 175, 80, 0.1); padding: 4px 8px; border-radius: 4px; }
-        .status-err { color: #f44336; background: rgba(244, 67, 54, 0.1); padding: 4px 8px; border-radius: 4px; }
-        .time { color: #888; font-size: 0.85rem; }
-        button { width: 100%; padding: 12px; background: #007bff; border: none; color: white; border-radius: 8px; font-weight: bold; margin-bottom: 15px; cursor: pointer; }
+        body { font-family: -apple-system, sans-serif; background: #0b0e11; color: #e9ecef; padding: 15px; display: flex; justify-content: center; }
+        .card { background: #15191c; border-radius: 16px; padding: 24px; width: 100%; max-width: 450px; border: 1px solid #2b2f32; }
+        h1 { font-size: 1.4rem; text-align: center; color: #00d4ff; margin-bottom: 20px; }
+        .refresh-btn { width: 100%; padding: 12px; background: #007bff; border: none; color: white; border-radius: 10px; font-weight: bold; cursor: pointer; margin-bottom: 20px; transition: 0.2s; }
+        .refresh-btn:active { transform: scale(0.98); }
+        .log-item { border-bottom: 1px solid #2b2f32; padding: 12px 0; display: flex; justify-content: space-between; align-items: center; }
+        .status-success { color: #4caf50; font-weight: 600; font-size: 0.9rem; }
+        .status-failed { color: #f44336; font-weight: 600; font-size: 0.9rem; }
+        .time { color: #9ba3af; font-size: 0.85rem; font-family: monospace; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <h1>🚀 Auto-Boost Status</h1>
-    <button onclick="loadLogs()">Update Status</button>
-    <div id="logs">Loading logs...</div>
+    <h1>🚀 Boost Monitor</h1>
+    <button class="refresh-btn" onclick="loadLogs()">Update Live Status</button>
+    <div id="logs">Connecting to server...</div>
 </div>
 
 <script>
@@ -30,22 +31,28 @@
             const res = await fetch('/api/history');
             const data = await res.json();
             
-            logDiv.innerHTML = data.slice(0, 15).map(log => {
-                const isSuccess = log.status === 200;
-                const time = new Date(log.executedAt * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            if (data.length === 0) {
+                logDiv.innerHTML = "<center>No history found yet.</center>";
+                return;
+            }
+
+            logDiv.innerHTML = data.slice(0, 10).map(log => {
+                // Correctly check if status is 200 (Success)
+                const isSuccess = log.status === 200; 
+                // Fix the "Invalid Date" by multiplying seconds by 1000
+                const time = new Date(log.executedAt * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
                 return `
                     <div class="log-item">
-                        <div>
-                            <span class="time">${time}</span>
-                        </div>
-                        <div class="${isSuccess ? 'status-ok' : 'status-err'}">
-                            ${isSuccess ? 'SUCCESS' : 'FAILED (' + (log.httpStatus || 'Timeout') + ')'}
-                        </div>
+                        <span class="time">${time}</span>
+                        <span class="${isSuccess ? 'status-success' : 'status-failed'}">
+                            ${isSuccess ? '● SUCCESS' : '● FAILED (' + (log.httpStatus || 'Timeout') + ')'}
+                        </span>
                     </div>
                 `;
             }).join('');
         } catch (e) {
-            logDiv.innerHTML = "Failed to load logs.";
+            logDiv.innerHTML = "<center style='color:#f44336'>⚠️ Error loading data</center>";
         }
     }
     loadLogs();
